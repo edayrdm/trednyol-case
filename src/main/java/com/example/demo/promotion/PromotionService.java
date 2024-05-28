@@ -5,12 +5,14 @@ import com.example.demo.cart.CartItem;
 import com.example.demo.common.Money;
 import com.example.demo.common.PromotionDetails;
 import com.example.demo.items.VasItem;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+@Service
 public class PromotionService {
 
     private final List<Promotion> promotions = Arrays.asList(

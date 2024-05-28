@@ -25,22 +25,21 @@ public class CartItem {
         this.quantity = quantity;
     }
 
-    public void addQuantitiy(Integer add){
+    public void addQuantity(Integer add){
         this.quantity += add;
     }
 
-    public void subQuantitiy(Integer add){
+    public void subQuantity(Integer add){
         this.quantity -= add;
     }
 
-    public int totalVasItemCount() {
+    private int totalVasItemCount() {
         return vasItemList.stream().mapToInt(VasItem::getQuantity).sum();
     }
 
     public Money getTotalPrice(){
 
         Money totalPrice = item.getPrice().multi(this.quantity);
-
         Money totalVasItemList = vasItemList.stream().map(VasItem::getTotalPrice).reduce(new Money(0),Money::add);
 
         return totalPrice.add(totalVasItemList);
@@ -48,13 +47,11 @@ public class CartItem {
 
     public ResponseEntity addVasItemToList(VasItem vasItem){
 
-        if ( totalVasItemCount() + vasItem.getQuantity() > 3) {
+        if ( totalVasItemCount() + vasItem.getQuantity() > 3)
             return new ResponseEntity(false, "Cannot add more than 3 VasItems to the list");
-        }
 
-        if (vasItem.getPrice().isGreaterThan(item.getPrice())) {
+        if (vasItem.getPrice().isGreaterThan(item.getPrice()))
             return new ResponseEntity(false, "VasItem price cannot be higher than DefaultItem price");
-        }
 
         vasItemList.add(vasItem);
         return new ResponseEntity(true, "VasItem added successfully.");

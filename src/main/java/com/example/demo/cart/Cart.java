@@ -31,13 +31,13 @@ public class Cart {
         return cartItemList.stream().mapToInt(CartItem::getQuantity).sum();
     }
 
-    public int checkItemIndex (Item item) {
+    public Optional<CartItem> checkItemIndex (Item item) {
 
         Optional<CartItem> cartItem =  cartItemList.stream()
                             .filter( cItem -> cItem.getItem().equals(item) )
                             .findFirst();
 
-        return cartItem.map(cartItemList::indexOf).orElse(-1);
+        return cartItem;
     }
 
     public Money getTotalPrice(){
@@ -56,7 +56,7 @@ public class Cart {
             return new ResponseEntity(false, "Exceeds maximum quantity for item");
         }
         //The maximum quantity of an item that can be added is 10
-        if ( checkItemIndex(item)==-1 && totalUniqueCartItems() >= MAX_UNIQUE_ITEMS ) {
+        if ( checkItemIndex(item).isEmpty() && totalUniqueCartItems() >= MAX_UNIQUE_ITEMS ) {
             return new ResponseEntity(false, "Exceeds maximum unique items in cart");
         }
         //The total number of products cannot exceed 30.
@@ -65,11 +65,11 @@ public class Cart {
         }
 
         //first add item to list
-        int indexOfMatchingItem = checkItemIndex(item);
-        if ( indexOfMatchingItem == -1)
+        Optional<CartItem> optionalCartItem = checkItemIndex(item);
+        if ( optionalCartItem.isEmpty())
             cartItemList.add(new CartItem(item, quantity));
         else {
-            cartItemList.get(indexOfMatchingItem).addQuantitiy(quantity);
+            optionalCartItem.get().addQuantity(quantity);
         }
 
         //then check the price
@@ -79,10 +79,10 @@ public class Cart {
         if (totalPrice.sub(discountAmount).isGreaterThan(MAX_TOTAL_AMOUNT)) {
             //todo remove
 
-            if( cartItemList.get(indexOfMatchingItem).getQuantity() == quantity)
+            if( optionalCartItem.isEmpty())
                 cartItemList.removeIf(cartItem -> cartItem.getItem().equals(item));
             else
-                cartItemList.get(indexOfMatchingItem).subQuantitiy(quantity);
+                optionalCartItem.get().subQuantity(quantity);
 
             return new ResponseEntity(false, "Exceeds maximum total amount in cart");
         }

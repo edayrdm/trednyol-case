@@ -19,9 +19,9 @@ public class SameSellerPromotion extends Promotion {
                 item -> item.getItem().getSellerID()
         ).distinct().count();
 
-        if (distinctSellers == 1) {
+        if (distinctSellers == 1)
             return cart.getTotalPrice().multi(discountRate);
-        }
+
         return new Money(0);
     }
 }

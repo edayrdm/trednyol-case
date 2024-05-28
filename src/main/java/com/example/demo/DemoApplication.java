@@ -133,6 +133,7 @@ public class DemoApplication {
 		Money totalDiscount = details.getDiscountAmount();
 		Money totalAmount = totalPrice.sub(totalDiscount);
 
+
 		messageNode.put("totalAmount", totalAmount.value());
 		messageNode.put("totalDiscount", totalDiscount.value());
 		messageNode.put("appliedPromotionId", details.getPromotionId());
@@ -144,7 +145,7 @@ public class DemoApplication {
 			itemNode.put("itemId", cartItem.getItem().getID());
 			itemNode.put("categoryId", cartItem.getItem().getCategoryID());
 			itemNode.put("sellerId", cartItem.getItem().getSellerID());
-			itemNode.put("price", cartItem.getItem().getPrice().value());
+			itemNode.put("price", cartItem.getTotalPrice().value());
 			itemNode.put("quantity", cartItem.getQuantity());
 
 			List<ObjectNode> vasItemNodes = new ArrayList<>();
@@ -158,8 +159,10 @@ public class DemoApplication {
 				vasItemNodes.add(vasItemNode);
 			}
 			itemNode.putArray("vasItems").addAll(vasItemNodes);
+
 			itemNodes.add(itemNode);
 		}
 		messageNode.putArray("items").addAll(itemNodes);
 	}
+
 }
