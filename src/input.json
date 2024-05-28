@@ -1,0 +1,36 @@
+[
+  {
+    "command": "addItem",
+    "payload": {
+      "itemId": 1,
+      "categoryId": 3004,
+      "sellerId": 1001,
+      "price": 1500.0,
+      "quantity": 1
+    }
+  },
+  {
+    "command": "addItem",
+    "payload": {
+      "itemId": 1,
+      "categoryId": 3004,
+      "sellerId": 1001,
+      "price": 1500.0,
+      "quantity": 30
+    }
+  },
+  {
+    "command": "addVasItemToItem",
+    "payload": {
+      "itemId": 1,
+      "vasItemId": 101,
+      "vasCategoryId": 3242,
+      "vasSellerId": 5003,
+      "price": 200.0,
+      "quantity": 2
+    }
+  },
+  {
+    "command": "displayCart"
+  }
+]
