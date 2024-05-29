@@ -109,8 +109,19 @@ public class CartTest {
         cart.addItemToList(item1, 3);
         cart.addItemToList(item2, 1);
 
-        new PromotionService().applyBestPromotion(cart);
-        assertEquals(new Money(320).value(), cart.getTotalDiscount().getDiscountAmount().value());
+        PromotionDetails promotionDetails = new PromotionService().applyBestPromotion(cart);
+
+        assertEquals(new Money(320).value(), promotionDetails.getDiscountAmount().value());
     }
+
+    @Test
+    public void testResetCart() {
+        DefaultItem item = new DefaultItem(1, 1000, 1001, new Money(100));
+        cart.addItemToList(item, 2);
+        cart.resetItems();
+
+        assertEquals(0, cart.totalItemCount());
+    }
+
 
 }

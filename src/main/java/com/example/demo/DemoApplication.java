@@ -1,13 +1,10 @@
 package com.example.demo;
 
-import com.example.demo.cart.Cart;
+import com.example.demo.cart.CartDisplay;
 import com.example.demo.cart.CartItem;
-import com.example.demo.common.Money;
-import com.example.demo.common.PromotionDetails;
+import com.example.demo.cart.CartService;
 import com.example.demo.common.ResponseEntity;
-import com.example.demo.items.DefaultItem;
-import com.example.demo.items.DigitalItem;
-import com.example.demo.items.Item;
+import com.example.demo.items.ItemService;
 import com.example.demo.items.VasItem;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,8 +12,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @SpringBootApplication
 public class DemoApplication {
@@ -29,7 +28,7 @@ public class DemoApplication {
 		String outputFilePath = "src/output.json";
 
 		ObjectMapper objectMapper = new ObjectMapper();
-		Cart cart = new Cart();
+		CartService cartService = new CartService(new ItemService());
 
 		try {
 			JsonNode inputCommands = objectMapper.readTree(new File(inputFilePath));
@@ -43,19 +42,19 @@ public class DemoApplication {
 				ObjectNode resultNode = objectMapper.createObjectNode();
 				switch (command) {
 					case "addItem":
-						handleAddItemCommand(cart, payload, resultNode);
+						handleAddItemCommand(cartService, payload, resultNode);
 						break;
 					case "addVasItemToItem":
-						handleAddVasItemToItemCommand(cart, payload, resultNode);
+						handleAddVasItemToItemCommand(cartService, payload, resultNode);
 						break;
 					case "removeItem":
-						handleRemoveItemCommand(cart, payload, resultNode);
+						handleRemoveItemCommand(cartService, payload, resultNode);
 						break;
 					case "resetCart":
-						handleResetCartCommand(cart, resultNode);
+						handleResetCartCommand(cartService, resultNode);
 						break;
 					case "displayCart":
-						handleDisplayCartCommand(cart, resultNode);
+						handleDisplayCartCommand(cartService, resultNode);
 						break;
 					default:
 						resultNode.put("result", false);
@@ -70,7 +69,7 @@ public class DemoApplication {
 		}
 	}
 
-	private static void handleAddItemCommand(Cart cart, JsonNode payload, ObjectNode resultNode) {
+	private static void handleAddItemCommand(CartService cartService, JsonNode payload, ObjectNode resultNode) {
 
 		int itemId = payload.get("itemId").asInt();
 		int categoryId = payload.get("categoryId").asInt();
@@ -78,20 +77,13 @@ public class DemoApplication {
 		double price = payload.get("price").asDouble();
 		int quantity = payload.get("quantity").asInt();
 
-		//we have 2 types of item digitalItem or defaultItem
-		Item item;
-		if(categoryId == 7889)
-			item = new DigitalItem(itemId, sellerId, categoryId,new Money((price)));
-		else
-			item = new DefaultItem(itemId, sellerId, categoryId,new Money((price)));
-
-		ResponseEntity result = cart.addItemToList(item, quantity);
+		ResponseEntity result = cartService.addItem(itemId, categoryId, sellerId, price, quantity);
 
 		resultNode.put("result", result.isResult());
 		resultNode.put("message", result.getMessage());
 	}
 
-	private static void handleAddVasItemToItemCommand(Cart cart, JsonNode payload, ObjectNode resultNode) {
+	private static void handleAddVasItemToItemCommand(CartService cartService, JsonNode payload, ObjectNode resultNode) {
 
 		int itemId = payload.get("itemId").asInt();
 		int vasItemId = payload.get("vasItemId").asInt();
@@ -100,69 +92,61 @@ public class DemoApplication {
 		double price = payload.get("price").asDouble();
 		int quantity = payload.get("quantity").asInt();
 
-		VasItem vasItem = new VasItem(vasItemId, vasSellerId, vasCategoryId, new Money((price)), quantity);
-		ResponseEntity result = cart.addVasItemToItem(itemId, vasItem);
+		ResponseEntity result = cartService.addVasItemToItem(itemId, vasItemId, vasCategoryId, vasSellerId, price, quantity);
 
 		resultNode.put("result", result.isResult());
 		resultNode.put("message", result.getMessage());
 	}
 
-	private static void handleRemoveItemCommand(Cart cart, JsonNode payload, ObjectNode resultNode) {
+	private static void handleRemoveItemCommand(CartService cartService, JsonNode payload, ObjectNode resultNode) {
+
 		int itemId = payload.get("itemId").asInt();
-		ResponseEntity result = cart.removeItem(itemId);
+		ResponseEntity result = cartService.removeItem(itemId);
 
 		resultNode.put("result", result.isResult());
 		resultNode.put("message", result.getMessage());
 	}
 
-	private static void handleResetCartCommand(Cart cart, ObjectNode resultNode) {
-		cart.resetItems();
+	private static void handleResetCartCommand(CartService cartService, ObjectNode resultNode) {
 
+
+		cartService.resetCart();
 		resultNode.put("result", true);
 		resultNode.put("message", "Cart reset successfully.");
 	}
 
-	private static void handleDisplayCartCommand(Cart cart, ObjectNode resultNode) {
+	private static void handleDisplayCartCommand(CartService cartService, ObjectNode resultNode) {
 
-		resultNode.put("result", true);
+		CartDisplay cartDisplay = cartService.displayCart();
 		ObjectNode messageNode = resultNode.putObject("message");
 
-		// checking for applied promotion details
-		PromotionDetails details = cart.getTotalDiscount();
-		Money totalPrice = cart.getTotalPrice();
-		Money totalDiscount = details.getDiscountAmount();
-		Money totalAmount = totalPrice.sub(totalDiscount);
+			messageNode.put("totalAmount", cartDisplay.getTotalAmount().value());
+			messageNode.put("totalDiscount", cartDisplay.getTotalDiscount().value());
+			messageNode.put("appliedPromotionId", cartDisplay.getAppliedPromotionId());
 
+			ObjectMapper objectMapper = new ObjectMapper();
+			List<ObjectNode> itemNodes = new ArrayList<>();
+			for (CartItem cartItem : cartDisplay.getItems()) {
+				ObjectNode itemNode = objectMapper.createObjectNode();
+				itemNode.put("itemId", cartItem.getItem().getID());
+				itemNode.put("categoryId", cartItem.getItem().getCategoryID());
+				itemNode.put("sellerId", cartItem.getItem().getSellerID());
+				itemNode.put("price", cartItem.getItem().getPrice().value());
+				itemNode.put("quantity", cartItem.getQuantity());
 
-		messageNode.put("totalAmount", totalAmount.value());
-		messageNode.put("totalDiscount", totalDiscount.value());
-		messageNode.put("appliedPromotionId", details.getPromotionId());
-
-		ObjectMapper objectMapper = new ObjectMapper();
-		List<ObjectNode> itemNodes = new ArrayList<>();
-		for (CartItem cartItem : cart.getCartItemList()) {
-			ObjectNode itemNode = objectMapper.createObjectNode();
-			itemNode.put("itemId", cartItem.getItem().getID());
-			itemNode.put("categoryId", cartItem.getItem().getCategoryID());
-			itemNode.put("sellerId", cartItem.getItem().getSellerID());
-			itemNode.put("price", cartItem.getTotalPrice().value());
-			itemNode.put("quantity", cartItem.getQuantity());
-
-			List<ObjectNode> vasItemNodes = new ArrayList<>();
-			for (VasItem vasItem : cartItem.getVasItemList()) {
-				ObjectNode vasItemNode =objectMapper.createObjectNode();
-				vasItemNode.put("vasItemId", vasItem.getID());
-				vasItemNode.put("vasCategoryId", vasItem.getCategoryID());
-				vasItemNode.put("vasSellerId", vasItem.getSellerID());
-				vasItemNode.put("price", vasItem.getPrice().value());
-				vasItemNode.put("quantity", vasItem.getQuantity());
-				vasItemNodes.add(vasItemNode);
+				List<ObjectNode> vasItemNodes = new ArrayList<>();
+				for (VasItem vasItem : cartItem.getVasItemList()) {
+					ObjectNode vasItemNode = objectMapper.createObjectNode();
+					vasItemNode.put("vasItemId", vasItem.getID());
+					vasItemNode.put("vasCategoryId", vasItem.getCategoryID());
+					vasItemNode.put("vasSellerId", vasItem.getSellerID());
+					vasItemNode.put("price", vasItem.getPrice().value());
+					vasItemNode.put("quantity", vasItem.getQuantity());
+					vasItemNodes.add(vasItemNode);
+				}
+				itemNode.putArray("vasItems").addAll(vasItemNodes);
+				itemNodes.add(itemNode);
 			}
-			itemNode.putArray("vasItems").addAll(vasItemNodes);
-
-			itemNodes.add(itemNode);
+			messageNode.putArray("items").addAll(itemNodes);
 		}
-		messageNode.putArray("items").addAll(itemNodes);
-	}
-
 }

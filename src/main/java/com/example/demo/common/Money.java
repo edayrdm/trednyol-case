@@ -1,5 +1,8 @@
 package com.example.demo.common;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 public class Money {
 
     private final double money;
